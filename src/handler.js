@@ -55,34 +55,44 @@ const addBookHandler = (request, h) => {
 };
 
 //GET ALL BOOKS
-const getAllBooksHandler = (h) => {
-    if(!books){
-        //Jika belum terdapat buku yang dimasukkan
+const getAllBooksHandler = (request, h) => {
+    const { name, reading, finished } = request.query;
+    let filteredBooks = books;
+
+    if (books.length === 0) {
         const response = h.response({
             status: 'success',
             data: {
-                books : []
+                books: [],
             },
-        });  
+        });
         response.code(200);
         return response;
     }
 
-    if(books){
-        const response = h.response({
-            status: 'success',
-            data: {
-                books: books.map((book) => ({
-                    id: book.id,
-                    name: book.name,
-                    publisher: book.publisher,
-                })),
-            },
-        });  
-        response.code(200);
-        return response;
+    if (name !== undefined ) {
+        filteredBooks = filteredBooks.filter((book) => book.name.toLowerCase().includes(name.toLowerCase()));
     }
-    
+
+    if (reading !== undefined) {
+        filteredBooks = filteredBooks.filter((book) => book.reading === (reading === '1'));
+    }
+
+    if (finished !== undefined) {
+        filteredBooks = filteredBooks.filter((book) => book.finished === (finished === '1'));
+    }
+
+    const response = h.response({
+        status: 'success',
+        data: {
+            books: filteredBooks.map((book) => ({
+            id: book.id,
+            name: book.name,
+            publisher: book.publisher,
+            })),
+        },
+    });
+    response.code(200);
     return response;
 };
 
@@ -90,7 +100,7 @@ const getAllBooksHandler = (h) => {
 //DETAIL BOOK
 const getBookByIdHandler = (request, h) => {
     const { id } = request.params;
-    const book = books.filter((n) => n.id === id)[0];
+    const book = books.filter((book) => book.id === id)[0];
 
     if (book) {
         const response = h.response({
@@ -121,6 +131,28 @@ const editBookByIdHandler = (request, h) => {
     const updatedAt = new Date().toISOString();
     const index = books.findIndex((book) => book.id === id);
 
+    //Server harus merespons gagal bila:
+    //1. Client tidak melampirkan properti name pada request body.
+    if (!name) {
+        const response = h.response({
+            status: 'fail',
+            message: 'Gagal memperbarui buku. Mohon isi nama buku',
+        })
+        response.code(400);
+        return response;
+    }
+
+    //Client melampirkan nilai properti readPage yang lebih besar dari nilai properti pageCount.
+    if (readPage > pageCount) {
+        // Client melampirkan nilai properti readPage yang lebih besar dari nilai properti pageCount
+        const response = h.response({
+            status: 'fail',
+            message: 'Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount',
+        })
+        response.code(400);
+        return response;
+    }
+
     //Bila berhasil
     if (index !== -1) {
         books[index] = {
@@ -145,28 +177,6 @@ const editBookByIdHandler = (request, h) => {
         return response;
     }
 
-    //Server harus merespons gagal bila:
-    //1. Client tidak melampirkan properti name pada request body.
-    if (!name) {
-        const response = h.response({
-            status: 'fail',
-            message: 'Gagal memperbarui buku. Mohon isi nama buku',
-        })
-        response.code(400);
-        return response;
-    }
-
-    //Client melampirkan nilai properti readPage yang lebih besar dari nilai properti pageCount.
-    if (readPage > pageCount) {
-        // Client melampirkan nilai properti readPage yang lebih besar dari nilai properti pageCount
-        const response = h.response({
-            status: 'fail',
-            message: 'Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount',
-        })
-        response.code(400);
-        return response;
-    }
-
     //3. Id yang dilampirkan oleh client tidak ditemukkan oleh server.
     const response = h.response({
         status: 'fail',
@@ -180,6 +190,7 @@ const editBookByIdHandler = (request, h) => {
 //DELETE BOOK
 const deleteBookByIdHandler = (request, h) => {
     const { id } = request.params;
+
     const index = books.findIndex((book) => book.id === id);
 
     if (index !== -1) {
@@ -190,6 +201,7 @@ const deleteBookByIdHandler = (request, h) => {
         });
         response.code(200);
         return response;
+        
     }
 
     const response = h.response({
