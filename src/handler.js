@@ -14,7 +14,7 @@ const addBookHandler = (request, h) => {
     const newBook = {
         id, name, year, author, summary, publisher, pageCount, readPage, finished, reading, insertedAt, updatedAt,
     };
-    books.push(newBook);
+    // books.push(newBook);
 
     //Server harus merespons gagal bila:
     // 1. Client tidak melampirkan properti name pada request body.
@@ -36,6 +36,8 @@ const addBookHandler = (request, h) => {
         response.code(400);
         return response;
     }
+
+    books.push(newBook);
 
     //Bila buku berhasil dimasukkan
     const isSuccess = books.filter((book) => book.id === id).length > 0;
@@ -59,19 +61,10 @@ const getAllBooksHandler = (request, h) => {
     const { name, reading, finished } = request.query;
     let filteredBooks = books;
 
-    if (books.length === 0) {
-        const response = h.response({
-            status: 'success',
-            data: {
-                books: [],
-            },
+    if (name) {
+        filteredBooks = filteredBooks.filter(book => {
+            return book.name.toLowerCase().includes(name.toLowerCase());
         });
-        response.code(200);
-        return response;
-    }
-
-    if (name !== undefined ) {
-        filteredBooks = filteredBooks.filter((book) => book.name.toLowerCase().includes(name.toLowerCase()));
     }
 
     if (reading !== undefined) {
@@ -80,6 +73,17 @@ const getAllBooksHandler = (request, h) => {
 
     if (finished !== undefined) {
         filteredBooks = filteredBooks.filter((book) => book.finished === (finished === '1'));
+    }
+
+    if (books === undefined) {
+        const response = h.response({
+            status: 'success',
+            data: {
+                books: [],
+            },
+        });
+        response.code(200);
+        return response;
     }
 
     const response = h.response({
